@@ -45,5 +45,13 @@ jobs:
         run: |
           $installer = Get-ChildItem 'release' -Filter '*Setup*.exe' | Select-Object -First 1
           if (-not $installer) { throw 'No se generó el instalador.' }
-          $blockmap = Get-Item ($installer.FullName + '.blockmap')
-          gh release upload $env:RELEASE_TAG $installer.FullName $blockmap.FullName 'release/latest.yml' --clobber
+          $version = $env:RELEASE_TAG.TrimStart('v')
+          $updaterName = "Waza-Studios-Setup-$version.exe"
+          $updaterPath = Join-Path 'release' $updaterName
+          Copy-Item $installer.FullName $updaterPath -Force
+          Copy-Item ($installer.FullName + '.blockmap') ($updaterPath + '.blockmap') -Force
+          $metadataPath = 'release/latest.yml'
+          $metadata = Get-Content $metadataPath -Raw
+          $metadata = $metadata.Replace($installer.Name, $updaterName)
+          Set-Content $metadataPath -Value $metadata -NoNewline -Encoding utf8
+          gh release upload $env:RELEASE_TAG $updaterPath ($updaterPath + '.blockmap') $metadataPath --clobber
