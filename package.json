@@ -1,8 +1,8 @@
 {
   "name": "vacacionesland3-mod-sync",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "private": true,
-  "description": "Sincronizador de mods VacacionesLand3 para Minecraft NeoForge 1.21.1",
+  "description": "Waza Studios Minecraft launcher for NeoForge and Fabric modpacks",
   "main": "src/client.js",
   "scripts": {
     "start": "electron .",
@@ -14,7 +14,7 @@
   },
   "build": {
     "appId": "cl.vacacionesland3.launcher",
-    "productName": "VacacionesLand3",
+    "productName": "Waza Studios",
     "publish": [
       {
         "provider": "github",
@@ -26,6 +26,7 @@
     "directories": {
       "output": "release"
     },
+    "artifactName": "${productName}-Setup-${version}.${ext}",
     "win": {
       "icon": "src/assets/vacacionesland-app.ico",
       "target": "nsis"
