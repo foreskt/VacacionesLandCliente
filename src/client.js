@@ -20,9 +20,10 @@ let updateCheckInProgress = false;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.allowPrerelease = false;
-const MC_VERSION = '1.21.1';
-const NEOFORGE_VERSION = '21.1.256';
+const MC_VERSION = '1.21.1';const NEOFORGE_VERSION = '21.1.256';
 const PACK_FOLDERS = new Set(['mods', 'config', 'defaultconfigs', 'resourcepacks', 'controls']);
+// Mantener mods, configuración y preferencias entre lanzamientos.
+const INSTANCE_IGNORED_FILES = ['mods', 'config', 'defaultconfigs', 'resourcepacks', 'controls', 'options.txt', 'optionsof.txt', 'optionsshaders.txt', 'optionsprofiles.txt', 'saves', 'screenshots', 'shaderpacks', 'servers.dat', 'servers.dat_old', '.vacacionesland3-files.json', '.vacacionesland3-controls-installed', '.vacacionesland3-initial-options-installed'];
 const GAME_ROOT = () => path.join(app.getPath('userData'), 'Minecraft');
 const INSTANCE_NAME = 'VacacionesLand3';
 const PACK_IDS = new Set(['principal', 'optimizado']);
@@ -468,6 +469,7 @@ app.whenReady().then(() => {
         path: GAME_ROOT(), instance, version: MC_VERSION,
         authenticator, loader: { type: 'neoforge', build: NEOFORGE_VERSION, enable: true },
         java: { version: '21', type: 'jre' }, memory: { min: '2G', max: `${maxRamGb}G` },
+        ignored: INSTANCE_IGNORED_FILES,
         downloadFileMultiple: 5
       });
       mainWindow.minimize();
