@@ -1,0 +1,46 @@
+{
+  "name": "vacacionesland3-mod-sync",
+  "version": "0.3.5",
+  "private": true,
+  "description": "Sincronizador de mods VacacionesLand3 para Minecraft NeoForge 1.21.1",
+  "main": "src/client.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "cl.vacacionesland3.launcher",
+    "productName": "VacacionesLand3",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "foreskt",
+        "repo": "VacacionesLandCliente",
+        "releaseType": "release"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "icon": "src/assets/vacacionesland-app.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "installerIcon": "src/assets/vacacionesland-app.ico",
+      "uninstallerIcon": "src/assets/vacacionesland-app.ico",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "electronDist": "node_modules/electron/dist"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "minecraft-java-core": "^4.2.9"
+  }
+}
