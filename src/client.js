@@ -7,11 +7,15 @@ const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage } = require('ele
 const { autoUpdater } = require('electron-updater');
 const { Launch, Microsoft } = require('minecraft-java-core');
 
+// Evita iniciar dos copias del launcher: ambas intentarían usar el mismo puerto local.
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) app.quit();
+
 const PORT = 8766;
 const ui = path.join(__dirname, 'ui.html');
-const publishedDirs = { principal: null, optimizado: null };
-const publishedControlsFiles = { principal: null, optimizado: null };
-const publishedOptionsFiles = { principal: null, optimizado: null };
+const publishedDirs = { principal: null, optimizado: null, misterio: null };
+const publishedControlsFiles = { principal: null, optimizado: null, misterio: null };
+const publishedOptionsFiles = { principal: null, optimizado: null, misterio: null };
 let publicServer = null;
 let mainWindow = null;
 let activeLaunch = null;
@@ -26,9 +30,9 @@ const PACK_FOLDERS = new Set(['mods', 'config', 'defaultconfigs', 'resourcepacks
 const INSTANCE_IGNORED_FILES = ['mods', 'config', 'defaultconfigs', 'resourcepacks', 'controls', 'options.txt', 'optionsof.txt', 'optionsshaders.txt', 'optionsprofiles.txt', 'saves', 'screenshots', 'shaderpacks', 'servers.dat', 'servers.dat_old', '.vacacionesland3-files.json', '.vacacionesland3-controls-installed', '.vacacionesland3-initial-options-installed'];
 const GAME_ROOT = () => path.join(app.getPath('userData'), 'Minecraft');
 const INSTANCE_NAME = 'VacacionesLand3';
-const PACK_IDS = new Set(['principal', 'optimizado']);
+const PACK_IDS = new Set(['principal', 'optimizado', 'misterio']);
 function packId(value) { return PACK_IDS.has(value) ? value : 'principal'; }
-function gameInstanceName(value) { return packId(value) === 'optimizado' ? `${INSTANCE_NAME}-Optimizado` : INSTANCE_NAME; }
+function gameInstanceName(value) { const id = packId(value); return id === 'optimizado' ? `${INSTANCE_NAME}-Optimizado` : id === 'misterio' ? 'SenorMisterio-Fabric' : INSTANCE_NAME; }
 const GAME_DIR = (value = 'principal') => path.join(GAME_ROOT(), 'instances', gameInstanceName(value));
 const ACCOUNT_FILE = () => path.join(app.getPath('userData'), 'account.json');
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'settings.json');
@@ -241,7 +245,8 @@ function publish(folder, selectedPack) {
         files.push({ path: 'controls/initial-options.txt', name: 'initial-options.txt', size: buffer.length, sha256: crypto.createHash('sha256').update(buffer).digest('hex') });
       }
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      response.end(JSON.stringify({ pack: requestedPack, minecraft: MC_VERSION, loader: `NeoForge ${NEOFORGE_VERSION}`, generatedAt: new Date().toISOString(), files })); return;
+      const loader = requestedPack === 'misterio' ? 'Fabric 0.17.2' : `NeoForge ${NEOFORGE_VERSION}`;
+      response.end(JSON.stringify({ pack: requestedPack, minecraft: MC_VERSION, loader, generatedAt: new Date().toISOString(), files })); return;
     }
     if (request.method === 'GET' && request.url.startsWith('/files/')) {
       const rawParts = request.url.slice('/files/'.length).split('/');
@@ -370,7 +375,7 @@ const server = http.createServer(async (req, res) => {
         const requestData = JSON.parse(body);
         const id = packId(requestData.pack);
         const copied = publish(requestData.folder, id);
-        const label = id === 'principal' ? 'Principal' : 'Optimizado';
+        const label = id === 'principal' ? 'Principal' : id === 'optimizado' ? 'Optimizado' : 'Señor Misterio (Fabric)';
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: `${label} publicado en el puerto 8765. ${copied} archivo(s) copiado(s) a tu instancia local.` }));
       }
@@ -384,7 +389,25 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404); res.end();
 });
 
+app.on('second-instance', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return;
+  server.on('error', error => {
+    if (error.code === 'EADDRINUSE') {
+      dialog.showErrorBox('Waza Studios ya está abierto', 'Ya hay otra instancia del launcher usando el servicio local. Cierra la otra ventana y vuelve a intentarlo.');
+      app.quit();
+      return;
+    }
+    dialog.showErrorBox('Error del launcher', error.message || 'No se pudo iniciar el servicio local.');
+    app.quit();
+  });
   server.listen(PORT, '127.0.0.1', () => console.log(`Servicio local listo en ${PORT}`));
   ipcMain.handle('pick-folder', async () => { const result = await dialog.showOpenDialog({ properties: ['openDirectory'] }); return result.canceled ? null : result.filePaths[0]; });
   ipcMain.handle('open-microsoft-register', () => shell.openExternal('https://signup.live.com/'));
@@ -467,7 +490,7 @@ app.whenReady().then(() => {
       const { maxRamGb } = readSettings();
       launcher.Launch({
         path: GAME_ROOT(), instance, version: MC_VERSION,
-        authenticator, loader: { type: 'neoforge', build: NEOFORGE_VERSION, enable: true },
+        authenticator, loader: id === 'misterio' ? { type: 'fabric', build: '0.17.2', enable: true } : { type: 'neoforge', build: NEOFORGE_VERSION, enable: true },
         java: { version: '21', type: 'jre' }, memory: { min: '2G', max: `${maxRamGb}G` },
         ignored: INSTANCE_IGNORED_FILES,
         downloadFileMultiple: 5
@@ -480,7 +503,7 @@ app.whenReady().then(() => {
     }
     return { started: true, folder: gameDir, pack: id, modCount: installedMods.length };
   });
-  mainWindow = new BrowserWindow({ width: 1180, height: 760, minWidth: 900, minHeight: 620, backgroundColor: '#101319', title: 'VacacionesLand3 · Modpack', icon: path.join(__dirname, 'assets', 'vacacionesland-app.png'), webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.js') } });
+  mainWindow = new BrowserWindow({ width: 1180, height: 760, minWidth: 900, minHeight: 620, backgroundColor: '#101319', title: 'Waza Studios · Launcher', icon: path.join(__dirname, 'assets', 'vacacionesland-app.png'), webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.js') } });
   mainWindow.webContents.once('did-finish-load', () => {
     if (app.isPackaged) setTimeout(() => autoUpdater.checkForUpdates().catch(error => sendClientUpdateStatus('error', { message: error?.message || 'No se pudo revisar la actualización.' })), 3500);
   });
