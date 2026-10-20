@@ -13,9 +13,9 @@ if (!hasSingleInstanceLock) app.quit();
 
 const PORT = 8766;
 const ui = path.join(__dirname, 'ui.html');
-const publishedDirs = { principal: null, optimizado: null, misterio: null };
-const publishedControlsFiles = { principal: null, optimizado: null, misterio: null };
-const publishedOptionsFiles = { principal: null, optimizado: null, misterio: null };
+const publishedDirs = { principal: null, optimizado: null, misterio: null, chill: null };
+const publishedControlsFiles = { principal: null, optimizado: null, misterio: null, chill: null };
+const publishedOptionsFiles = { principal: null, optimizado: null, misterio: null, chill: null };
 let publicServer = null;
 let mainWindow = null;
 let activeLaunch = null;
@@ -30,9 +30,9 @@ const PACK_FOLDERS = new Set(['mods', 'config', 'defaultconfigs', 'resourcepacks
 const INSTANCE_IGNORED_FILES = ['mods', 'config', 'defaultconfigs', 'resourcepacks', 'controls', 'options.txt', 'optionsof.txt', 'optionsshaders.txt', 'optionsprofiles.txt', 'saves', 'screenshots', 'shaderpacks', 'servers.dat', 'servers.dat_old', '.vacacionesland3-files.json', '.vacacionesland3-controls-installed', '.vacacionesland3-initial-options-installed'];
 const GAME_ROOT = () => path.join(app.getPath('userData'), 'Minecraft');
 const INSTANCE_NAME = 'VacacionesLand3';
-const PACK_IDS = new Set(['principal', 'optimizado', 'misterio']);
+const PACK_IDS = new Set(['principal', 'optimizado', 'misterio', 'chill']);
 function packId(value) { return PACK_IDS.has(value) ? value : 'principal'; }
-function gameInstanceName(value) { const id = packId(value); return id === 'optimizado' ? `${INSTANCE_NAME}-Optimizado` : id === 'misterio' ? 'SenorMisterio-Fabric' : INSTANCE_NAME; }
+function gameInstanceName(value) { const id = packId(value); return id === 'optimizado' ? `${INSTANCE_NAME}-Optimizado` : id === 'misterio' ? 'SenorMisterio-Fabric' : id === 'chill' ? 'MinecraftDeChill-NeoForge' : INSTANCE_NAME; }
 const GAME_DIR = (value = 'principal') => path.join(GAME_ROOT(), 'instances', gameInstanceName(value));
 const ACCOUNT_FILE = () => path.join(app.getPath('userData'), 'account.json');
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'settings.json');
@@ -375,7 +375,7 @@ const server = http.createServer(async (req, res) => {
         const requestData = JSON.parse(body);
         const id = packId(requestData.pack);
         const copied = publish(requestData.folder, id);
-        const label = id === 'principal' ? 'Principal' : id === 'optimizado' ? 'Optimizado' : 'Señor Misterio (Fabric)';
+        const label = id === 'principal' ? 'Principal' : id === 'optimizado' ? 'Optimizado' : id === 'misterio' ? 'Señor Misterio (Fabric)' : 'Minecraft de chill (NeoForge)';
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: `${label} publicado en el puerto 8765. ${copied} archivo(s) copiado(s) a tu instancia local.` }));
       }
