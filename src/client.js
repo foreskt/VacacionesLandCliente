@@ -505,6 +505,7 @@ app.whenReady().then(() => {
   });
   mainWindow = new BrowserWindow({ width: 1180, height: 760, minWidth: 900, minHeight: 620, backgroundColor: '#101319', title: 'Waza Studios · Launcher', icon: path.join(__dirname, 'assets', 'vacacionesland-app.png'), webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.js') } });
   mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow.removeMenu();
     if (app.isPackaged) setTimeout(() => autoUpdater.checkForUpdates().catch(error => sendClientUpdateStatus('error', { message: error?.message || 'No se pudo revisar la actualización.' })), 3500);
   });
   mainWindow.loadFile(ui);
